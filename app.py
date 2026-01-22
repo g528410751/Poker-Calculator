@@ -45,6 +45,19 @@ st.markdown("""
     div[data-testid="stColumn"] {
         padding: 2px !important;
     }
+    
+    /* 禁止手机上 columns 自动堆叠成一列 */
+    @media (max-width: 640px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            flex: 1 1 auto !important;
+            min-width: 40px !important;
+            width: auto !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -256,18 +269,18 @@ def main():
     # 标题
     st.markdown("<div class='main-header'>🎴 德州扑克概率计算器 & AI 决策助手</div>", unsafe_allow_html=True)
     
+    # 手机模式开关 - 放在主界面顶部，方便手机用户操作
+    col_mode1, col_mode2, col_mode3 = st.columns([1, 2, 1])
+    with col_mode2:
+        st.session_state.mobile_mode = st.toggle(
+            "📱 手机模式（紧凑布局）",
+            value=st.session_state.get('mobile_mode', False),
+            help="开启后选牌区域每行显示7张牌，适合手机屏幕"
+        )
+    
     # 侧边栏 - API配置
     with st.sidebar:
         st.header("⚙️ 配置")
-        
-        # 布局模式
-        st.session_state.mobile_mode = st.toggle(
-            "📱 手机模式",
-            value=st.session_state.get('mobile_mode', False),
-            help="开启后使用更紧凑的布局，适合手机屏幕"
-        )
-        
-        st.divider()
         
         # DeepSeek API配置
         st.subheader("DeepSeek API")
