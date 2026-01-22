@@ -57,6 +57,54 @@ streamlit run app.py
 
 应用将在浏览器中自动打开，默认地址: `http://localhost:8501`
 
+---
+
+## ☁️ 部署到 Streamlit Cloud
+
+### 1. 准备 GitHub 仓库
+
+将以下文件推送到 GitHub（**不要**上传 `.env` 文件）：
+
+```
+app.py
+poker_calculator.py
+deepseek_advisor.py
+requirements.txt
+README.md
+```
+
+### 2. 部署应用
+
+1. 访问 [https://share.streamlit.io](https://share.streamlit.io)
+2. 点击 **New app**
+3. 选择你的 GitHub 仓库
+4. Main file path 填写: `app.py`
+5. 点击 **Deploy**
+
+### 3. 配置 Secrets（API Key）
+
+部署后，在 Streamlit Cloud 控制台：
+
+1. 进入你的 App → 右上角 **⋮** → **Settings**
+2. 找到 **Secrets** 选项卡
+3. 添加以下内容（TOML 格式）：
+
+```toml
+DEEPSEEK_API_KEY = "你的API Key"
+```
+
+4. 点击 **Save** → 应用会自动重启
+
+> 💡 **注意**: Secrets 中的 API Key 不会暴露给用户，安全可靠。
+
+### 4. 可选：指定 Python 版本
+
+在仓库根目录创建 `runtime.txt` 文件：
+
+```
+python-3.11
+```
+
 ## 📖 使用说明
 
 ### 基本使用流程
@@ -102,9 +150,10 @@ vibe code/
 
 ## 🔧 技术栈
 
-- **Python 3.8+**: 编程语言
-- **Streamlit**: Web 应用框架
-- **DeepSeek API**: AI 决策分析
+- **Python 3.9+**: 编程语言
+- **Streamlit >= 1.28.0**: Web 应用框架
+- **OpenAI SDK >= 1.0.0**: DeepSeek API 调用
+- **python-dotenv**: 本地环境变量管理
 - **蒙特卡洛模拟**: 概率计算方法
 
 ## 📊 算法说明
@@ -155,11 +204,20 @@ vibe code/
 
 ## 🔐 隐私和安全
 
-- API Key 仅在本地使用，不会被上传
-- 所有计算在本地完成
-- 建议使用 `.env` 文件管理 API Key
+- **本地开发**: API Key 通过 `.env` 文件管理，不会被提交到版本库
+- **线上部署**: API Key 通过 Streamlit Secrets 安全存储，不会暴露给用户
+- 所有概率计算在服务器端完成
+- AI 决策请求通过 HTTPS 加密传输
 
 ## 📝 更新日志
+
+### v1.1.0 (2026-01-22)
+- ✅ 支持 Streamlit Cloud 一键部署
+- ✅ 支持 st.secrets 读取 API Key（线上环境）
+- ✅ 优化卡牌选择 UI（表格形式、花色颜色区分）
+- ✅ AI 决策流式输出（实时显示）
+- ✅ 合并「全面分析」按钮（概率 + Outs + AI）
+- ✅ 添加指标帮助提示（小问号）
 
 ### v1.0.0 (2026-01-22)
 - ✅ 基础概率计算功能

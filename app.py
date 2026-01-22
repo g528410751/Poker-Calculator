@@ -229,8 +229,16 @@ def main():
         # DeepSeek API配置
         st.subheader("DeepSeek API")
         
-        # 检查是否有开发者默认API
-        default_api_key = os.getenv("DEEPSEEK_API_KEY", "")
+        # 检查是否有开发者默认API（优先读取 st.secrets，其次读取 .env）
+        default_api_key = ""
+        try:
+            # Streamlit Cloud 线上环境使用 st.secrets
+            default_api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+        except Exception:
+            pass
+        if not default_api_key:
+            # 本地开发环境使用 .env
+            default_api_key = os.getenv("DEEPSEEK_API_KEY", "")
         has_default_api = bool(default_api_key)
         
         # 用户选择是否使用自己的API
