@@ -86,6 +86,9 @@ if 'selected_hole_cards' not in st.session_state:
 if 'selected_community_cards' not in st.session_state:
     st.session_state.selected_community_cards = []
 
+if 'mobile_mode' not in st.session_state:
+    st.session_state.mobile_mode = False
+
 
 # 帮助信息定义
 HELP_TEXTS = {
@@ -103,8 +106,11 @@ HELP_TEXTS = {
 
 
 def create_card_grid(label: str, card_type: str, max_cards: int):
-    """创建表格形式的卡牌选择器"""
+    """创建表格形式的卡牌选择器 - 支持手机和电脑两种布局"""
     st.subheader(label)
+    
+    # 获取当前布局模式
+    is_mobile = st.session_state.get('mobile_mode', False)
     
     # 获取所有已选牌（用于禁用重复选择）
     hole_set = set(f"{c.rank}{c.suit}" for c in st.session_state.selected_hole_cards)
@@ -120,16 +126,17 @@ def create_card_grid(label: str, card_type: str, max_cards: int):
     # 显示当前选中的牌
     if current_set:
         st.markdown("**已选择:**")
-        selected_list = sorted(list(current_set))  # 排序保持稳定
-        cols = st.columns(min(len(selected_list), 7))
+        selected_list = sorted(list(current_set))
+        display_cols = 4 if is_mobile else min(len(selected_list), 7)
+        cols = st.columns(display_cols)
         for i, card_str in enumerate(selected_list[:7]):
-            with cols[i]:
+            with cols[i % display_cols]:
                 suit = card_str[-1]
                 rank = card_str[:-1]
                 suit_color = "#d32f2f" if suit in ['♥', '♦'] else "#212121"
                 st.markdown(
-                    f"<div style='font-size:1.5rem; text-align:center; color:{suit_color}; "
-                    f"background:#f0f2f6; border-radius:8px; padding:8px; white-space:nowrap;'>"
+                    f"<div style='font-size:1.3rem; text-align:center; color:{suit_color}; "
+                    f"background:#f0f2f6; border-radius:8px; padding:6px; white-space:nowrap; margin:2px;'>"
                     f"{rank}{suit}</div>", 
                     unsafe_allow_html=True
                 )
@@ -139,56 +146,39 @@ def create_card_grid(label: str, card_type: str, max_cards: int):
     # 创建表格形式的牌选择器
     st.markdown("##### 点击选牌:")
     
+    # 根据模式选择每行列数
+    cols_per_row = 7 if is_mobile else 13
+    
     for suit in Card.SUITS:
         is_red = suit in ['♥', '♦']
         suit_color = "#d32f2f" if is_red else "#212121"
         
-        cols = st.columns(13)
+        # 手机模式：13张牌分成两行（7+6）
+        # 电脑模式：13张牌一行
+        ranks_list = list(Card.RANKS)
         
-        for j, rank in enumerate(Card.RANKS):
-            card_str = f"{rank}{suit}"
-            is_selected = card_str in current_set
-            is_other_selected = card_str in other_set
-            can_add = len(current_set) < max_cards
+        if is_mobile:
+            # 手机模式：分成两行
+            row1_ranks = ranks_list[:7]   # A K Q J 10 9 8
+            row2_ranks = ranks_list[7:]   # 7 6 5 4 3 2
             
-            with cols[j]:
-                if is_other_selected:
-                    # 已被其他位置选中，显示为灰色不可点击
-                    st.markdown(
-                        f"<div style='text-align:center; padding:6px 2px; background:#e0e0e0; "
-                        f"border-radius:6px; color:#9e9e9e; font-size:0.85rem; opacity:0.5; "
-                        f"white-space:nowrap;'>{rank}{suit}</div>",
-                        unsafe_allow_html=True
-                    )
-                elif is_selected:
-                    # 已选中状态 - 使用 primary 类型按钮（白色文字）
-                    if st.button(f"{rank}{suit}", key=f"{card_type}_{rank}_{suit}", 
-                                 help="点击取消选择", use_container_width=True, type="primary"):
-                        # 移除这张牌
-                        if card_type == "hole":
-                            st.session_state.selected_hole_cards = [
-                                c for c in st.session_state.selected_hole_cards 
-                                if f"{c.rank}{c.suit}" != card_str
-                            ]
-                        else:
-                            st.session_state.selected_community_cards = [
-                                c for c in st.session_state.selected_community_cards 
-                                if f"{c.rank}{c.suit}" != card_str
-                            ]
-                        st.rerun()
-                else:
-                    # 未选中状态 - 按钮
-                    btn_key = f"{card_type}_{rank}_{suit}"
-                    clicked = st.button(f"{rank}{suit}", key=btn_key,
-                                 help="点击选择" if can_add else f"已达到{max_cards}张上限",
-                                 disabled=not can_add, use_container_width=True)
-                    if clicked:
-                        # 添加这张牌
-                        if card_type == "hole":
-                            st.session_state.selected_hole_cards.append(Card(rank, suit))
-                        else:
-                            st.session_state.selected_community_cards.append(Card(rank, suit))
-                        st.rerun()
+            # 第一行
+            cols = st.columns(7)
+            for j, rank in enumerate(row1_ranks):
+                with cols[j]:
+                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
+            
+            # 第二行
+            cols = st.columns(7)
+            for j, rank in enumerate(row2_ranks):
+                with cols[j]:
+                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
+        else:
+            # 电脑模式：一行显示全部
+            cols = st.columns(13)
+            for j, rank in enumerate(ranks_list):
+                with cols[j]:
+                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
     
     # 获取当前选中的牌列表
     if card_type == "hole":
@@ -208,6 +198,50 @@ def create_card_grid(label: str, card_type: str, max_cards: int):
     return cards
 
 
+def _render_card_button(card_type: str, rank: str, suit: str, current_set: set, other_set: set, max_cards: int, suit_color: str):
+    """渲染单个卡牌按钮"""
+    card_str = f"{rank}{suit}"
+    is_selected = card_str in current_set
+    is_other_selected = card_str in other_set
+    can_add = len(current_set) < max_cards
+    
+    if is_other_selected:
+        # 已被其他位置选中，显示为灰色不可点击
+        st.markdown(
+            f"<div style='text-align:center; padding:6px 2px; background:#e0e0e0; "
+            f"border-radius:6px; color:#9e9e9e; font-size:0.85rem; opacity:0.5; "
+            f"white-space:nowrap;'>{rank}{suit}</div>",
+            unsafe_allow_html=True
+        )
+    elif is_selected:
+        # 已选中状态 - 使用 primary 类型按钮
+        if st.button(f"{rank}{suit}", key=f"{card_type}_{rank}_{suit}", 
+                     help="点击取消选择", use_container_width=True, type="primary"):
+            if card_type == "hole":
+                st.session_state.selected_hole_cards = [
+                    c for c in st.session_state.selected_hole_cards 
+                    if f"{c.rank}{c.suit}" != card_str
+                ]
+            else:
+                st.session_state.selected_community_cards = [
+                    c for c in st.session_state.selected_community_cards 
+                    if f"{c.rank}{c.suit}" != card_str
+                ]
+            st.rerun()
+    else:
+        # 未选中状态
+        btn_key = f"{card_type}_{rank}_{suit}"
+        clicked = st.button(f"{rank}{suit}", key=btn_key,
+                     help="点击选择" if can_add else f"已达到{max_cards}张上限",
+                     disabled=not can_add, use_container_width=True)
+        if clicked:
+            if card_type == "hole":
+                st.session_state.selected_hole_cards.append(Card(rank, suit))
+            else:
+                st.session_state.selected_community_cards.append(Card(rank, suit))
+            st.rerun()
+
+
 def display_cards(cards, title):
     """显示卡牌"""
     if cards:
@@ -225,6 +259,15 @@ def main():
     # 侧边栏 - API配置
     with st.sidebar:
         st.header("⚙️ 配置")
+        
+        # 布局模式
+        st.session_state.mobile_mode = st.toggle(
+            "📱 手机模式",
+            value=st.session_state.get('mobile_mode', False),
+            help="开启后使用更紧凑的布局，适合手机屏幕"
+        )
+        
+        st.divider()
         
         # DeepSeek API配置
         st.subheader("DeepSeek API")
