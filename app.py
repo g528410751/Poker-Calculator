@@ -99,9 +99,6 @@ if 'selected_hole_cards' not in st.session_state:
 if 'selected_community_cards' not in st.session_state:
     st.session_state.selected_community_cards = []
 
-if 'mobile_mode' not in st.session_state:
-    st.session_state.mobile_mode = False
-
 
 # 帮助信息定义
 HELP_TEXTS = {
@@ -119,11 +116,8 @@ HELP_TEXTS = {
 
 
 def create_card_grid(label: str, card_type: str, max_cards: int):
-    """创建表格形式的卡牌选择器 - 支持手机和电脑两种布局"""
+    """创建表格形式的卡牌选择器"""
     st.subheader(label)
-    
-    # 获取当前布局模式
-    is_mobile = st.session_state.get('mobile_mode', False)
     
     # 获取所有已选牌（用于禁用重复选择）
     hole_set = set(f"{c.rank}{c.suit}" for c in st.session_state.selected_hole_cards)
@@ -140,10 +134,9 @@ def create_card_grid(label: str, card_type: str, max_cards: int):
     if current_set:
         st.markdown("**已选择:**")
         selected_list = sorted(list(current_set))
-        display_cols = 4 if is_mobile else min(len(selected_list), 7)
-        cols = st.columns(display_cols)
+        cols = st.columns(min(len(selected_list), 7))
         for i, card_str in enumerate(selected_list[:7]):
-            with cols[i % display_cols]:
+            with cols[i]:
                 suit = card_str[-1]
                 rank = card_str[:-1]
                 suit_color = "#d32f2f" if suit in ['♥', '♦'] else "#212121"
@@ -156,42 +149,17 @@ def create_card_grid(label: str, card_type: str, max_cards: int):
     else:
         st.caption(f"请在下方点击选择牌（最多{max_cards}张）")
     
-    # 创建表格形式的牌选择器
+    # 创建表格形式的牌选择器 - 每行13张牌
     st.markdown("##### 点击选牌:")
-    
-    # 根据模式选择每行列数
-    cols_per_row = 7 if is_mobile else 13
     
     for suit in Card.SUITS:
         is_red = suit in ['♥', '♦']
         suit_color = "#d32f2f" if is_red else "#212121"
         
-        # 手机模式：13张牌分成两行（7+6）
-        # 电脑模式：13张牌一行
-        ranks_list = list(Card.RANKS)
-        
-        if is_mobile:
-            # 手机模式：分成两行
-            row1_ranks = ranks_list[:7]   # A K Q J 10 9 8
-            row2_ranks = ranks_list[7:]   # 7 6 5 4 3 2
-            
-            # 第一行
-            cols = st.columns(7)
-            for j, rank in enumerate(row1_ranks):
-                with cols[j]:
-                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
-            
-            # 第二行
-            cols = st.columns(7)
-            for j, rank in enumerate(row2_ranks):
-                with cols[j]:
-                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
-        else:
-            # 电脑模式：一行显示全部
-            cols = st.columns(13)
-            for j, rank in enumerate(ranks_list):
-                with cols[j]:
-                    _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
+        cols = st.columns(13)
+        for j, rank in enumerate(Card.RANKS):
+            with cols[j]:
+                _render_card_button(card_type, rank, suit, current_set, other_set, max_cards, suit_color)
     
     # 获取当前选中的牌列表
     if card_type == "hole":
@@ -268,15 +236,6 @@ def display_cards(cards, title):
 def main():
     # 标题
     st.markdown("<div class='main-header'>🎴 德州扑克概率计算器 & AI 决策助手</div>", unsafe_allow_html=True)
-    
-    # 手机模式开关 - 放在主界面顶部，方便手机用户操作
-    col_mode1, col_mode2, col_mode3 = st.columns([1, 2, 1])
-    with col_mode2:
-        st.session_state.mobile_mode = st.toggle(
-            "📱 手机模式（紧凑布局）",
-            value=st.session_state.get('mobile_mode', False),
-            help="开启后选牌区域每行显示7张牌，适合手机屏幕"
-        )
     
     # 侧边栏 - API配置
     with st.sidebar:
